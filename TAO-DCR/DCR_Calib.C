@@ -49,7 +49,7 @@ void process_file(const std::string& inputFile) {
 
     // std::string outputFile = "./output_elec/elec_411_002.root";
     ////////////////////////////////////////////////
-    std::string outputTxtFile = "./output_file/tdc_411_001.txt";
+    //std::string outputTxtFile = "./output_file/tdc_411_001.txt";
     ////////////////////////////////////////////////
     
     // 打开输入文件
@@ -84,29 +84,30 @@ void process_file(const std::string& inputFile) {
     TrigTree->SetBranchAddress("CdTrigEvt", &TrigEvt);    
     
     // 创建直方图
-    TH1F *h_ADCs = new TH1F("ADCs", "ADCs Distribution", 20000, 0, 2e7); // 总ADC
-    TH1F *h_Widths = new TH1F("Widths", "Widths Distribution", 2000, 0, 2000);
-    TH1F *h_Baselines = new TH1F("Baselines", "Baselines Distribution", 300, 1900, 2200);
-    TH1F *h_TDCs = new TH1F("TDCs", "TDCs Distribution", 800, -500, 1500); // 总TDC
-    TH1F *h_channelid = new TH1F("channelid", "Channel ID Distribution", 8048, 0, 8048); // 每个事例中着火Channel的编号
-    TH1F *h_channels = new TH1F("channels", "Channel Hits per Event", 8048, 0, 8048); // 每个事例中着火Channel的数量
+    // TH1F *h_ADCs = new TH1F("ADCs", "ADCs Distribution", 20000, 0, 2e7); // 总ADC
+    // TH1F *h_Widths = new TH1F("Widths", "Widths Distribution", 2000, 0, 2000);
+    // TH1F *h_Baselines = new TH1F("Baselines", "Baselines Distribution", 300, 1900, 2200);
+    // TH1F *h_TDCs = new TH1F("TDCs", "TDCs Distribution", 800, -500, 1500); // 总TDC
+    // TH1F *h_channelid = new TH1F("channelid", "Channel ID Distribution", 8048, 0, 8048); // 每个事例中着火Channel的编号
+    // TH1F *h_channels = new TH1F("channels", "Channel Hits per Event", 8048, 0, 8048); // 每个事例中着火Channel的数量
 
-    TH1F *h_OF1s = new TH1F("OF1s", "OF1s Distribution", 100, 0, 100);
-    TH1F *h_OF2s = new TH1F("OF2s", "OF2s Distribution", 100, 0, 100);
-    h_OF1s->SetStats(true);
-    h_OF2s->SetStats(true);
+    // TH1F *h_OF1s = new TH1F("OF1s", "OF1s Distribution", 100, 0, 100);
+    // TH1F *h_OF2s = new TH1F("OF2s", "OF2s Distribution", 100, 0, 100);
+    // h_OF1s->SetStats(true);
+    // h_OF2s->SetStats(true);
     
     // 设置轴标签
-    h_ADCs->GetXaxis()->SetTitle("ADC");
-    h_channelid->GetXaxis()->SetTitle("Channel ID");
-    h_channels->GetXaxis()->SetTitle("Channel Number");
-    h_TDCs->GetXaxis()->SetTitle("TDC [ns]");
+    // h_ADCs->GetXaxis()->SetTitle("ADC");
+    // h_channelid->GetXaxis()->SetTitle("Channel ID");
+    // h_channels->GetXaxis()->SetTitle("Channel Number");
+    // h_TDCs->GetXaxis()->SetTitle("TDC [ns]");
 
      // 处理事件
      int Nentries = ElecTree->GetEntries();
      std::cout << "找到事件数: " << Nentries << std::endl;
 
-    for (int i = 0; i < Nentries; i++) // 循环每一事例
+    /*
+     for (int i = 0; i < Nentries; i++) // 循环每一事例
     {
         ElecTree->GetEntry(i);
         TrigTree->GetEntry(i); // 确保获取触发时间
@@ -151,6 +152,7 @@ void process_file(const std::string& inputFile) {
         }
 
     }
+    */
 
     // DCR Calibration
     ////////////////////////////////////////////////
@@ -161,19 +163,35 @@ void process_file(const std::string& inputFile) {
         double ratio; // TDC分布图相邻Bin的比值
         bool tag; // 标记是否去除
     };
+    struct DCR_With_ID
+    {
+        int ch_id; // 通道号
+        double dcr_ch; // DCR
+    };
     std::vector<int> tdc_entries;
     std::vector<double> tdc_dts;
     std::vector<double> tdc_ratios;
     std::vector<TDC_Struct> raw_tdc_calib_datas;
     std::vector<TDC_Struct> tdc_calib_datas;
+    std::vector<DCR_With_ID> dcrs;
     double nhits = 0;
     double sumtime = 0;
     double dcr_channel;
     double dcr;
-    TH1F* h_TDC_Channels = new TH1F("TDC_Channels_4793","TDC for Ch4793", 800, -500, 1500);
-    h_TDC_Channels->GetXaxis()->SetTitle("TDC [ns]");
+    TH1F* h_DCR = new TH1F("DCR", "DCR for Channels", 8048, 0, 8048);
+    h_DCR->GetXaxis()->SetTitle("Channel ID");
+    h_DCR->GetYaxis()->SetTitle("DCR (Hz/mm2)");
 
-    // Ch4793的TDC分布
+    const int number_channel = 8048;
+    TH1F* h_TDC_Channels[number_channel];
+    for (int i = 0; i < number_channel; i++) {
+        TString name = Form("TDC_Channels_%d", i);
+        TString title = Form("TDC for Channel %d", i);
+        h_TDC_Channels[i] = new TH1F(name, title, 800, -500, 1500);
+        h_TDC_Channels[i]->GetXaxis()->SetTitle("TDC [ns]");
+    }
+
+    // Ch的TDC分布
     for(int i=0; i<Nentries; i++)
     {
         ElecTree->GetEntry(i);
@@ -184,179 +202,196 @@ void process_file(const std::string& inputFile) {
         {
             Tao::CdElecChannel* Channel = &Channels_vec[j];
             int channel_id_calib = static_cast<int>(Channel->getChannelID()); // Channel编号
-            if(channel_id_calib == 4793)
-            {
-                std::vector<float> ADCs_Calib = Channel->getADCs();
-                auto TDC_Calib = Channel->getTDCs(); // 事例i中通道j的TDC
-                std::vector<int64_t> TDCs_Calib(TDC_Calib.begin(), TDC_Calib.end());
-                //std::cout<<ADCs_Calib.size()<<' '<<TDCs_Calib.size()<<std::endl;
+            std::vector<float> ADCs_Calib = Channel->getADCs();
+            auto TDC_Calib = Channel->getTDCs(); // 事例i中通道j的TDC
+            std::vector<int64_t> TDCs_Calib(TDC_Calib.begin(), TDC_Calib.end());
+            //std::cout<<ADCs_Calib.size()<<' '<<TDCs_Calib.size()<<std::endl;
             
-                for(size_t k=0; k<ADCs_Calib.size(); k++)
+            for(size_t k=0; k<ADCs_Calib.size(); k++)
+            {
+                float time = static_cast<float>(TDCs_Calib[k]);
+                h_TDC_Channels[channel_id_calib]->Fill(time);
+            }
+        }
+    }
+
+
+    for(int l=0; l<number_channel; l++)
+    {
+        // 初始化
+        tdc_entries.clear();
+        tdc_dts.clear();
+        tdc_ratios.clear();
+        raw_tdc_calib_datas.clear();
+        tdc_calib_datas.clear();
+        nhits = 0;
+        sumtime = 0;
+        
+        // 读取TDC分布图
+        for (int i=1; i<=h_TDC_Channels[l]->GetNbinsX(); i++)
+        {
+            int tdc_entry = h_TDC_Channels[l]->GetBinContent(i);
+            double tdc_dt = h_TDC_Channels[l]->GetBinLowEdge(i);
+
+            if (tdc_entry != 0)
+            {
+                tdc_entries.push_back(tdc_entry);
+                tdc_dts.push_back(tdc_dt);
+            }
+        }
+
+        if(tdc_entries.size() == 0) // 如果某个Channel没有计数 则直接开始读取下一个Channel
+        {
+            DCR_With_ID dcr_tmp;
+            dcr_tmp.ch_id = l;
+            dcr_tmp.dcr_ch = 0;
+            dcrs.push_back(dcr_tmp);
+            continue;
+        }
+        
+        // 计算相邻bin的比值
+        for (int i=0; i<tdc_entries.size(); i++)
+        {
+        if (i == 0)
+            {
+                tdc_ratios.push_back(0);
+            }
+            else
+            {
+                tdc_ratios.push_back(static_cast<double>(tdc_entries[i])/tdc_entries[i-1]); // ratio=bin/(bin-1)
+            }
+        }
+
+        //将击中、时间、比值存入结构体
+        for(int i=0; i<tdc_entries.size(); i++)
+        {
+            TDC_Struct tdc_tmp;
+
+            tdc_tmp.entry = tdc_entries[i];
+            tdc_tmp.dt = tdc_dts[i];
+            tdc_tmp.ratio = tdc_ratios[i];
+            tdc_tmp.tag = true;
+
+            raw_tdc_calib_datas.push_back(tdc_tmp);
+        }
+
+        for(int i=0; i<raw_tdc_calib_datas.size(); i++)
+        {
+            // 去除TDC分布图中靠前突变的部分
+            /*
+            double diff = 1.0 - raw_tdc_calib_datas[i].ratio;
+            if(i > 0 && std::fabs(diff) > 0.3 
+                && raw_tdc_calib_datas[i].dt <= 0.0)
+            {
+                for(int j=0; j<=i; j++)
                 {
-                    float time = static_cast<float>(TDCs_Calib[k]);
-                    h_TDC_Channels->Fill(time);
+                    raw_tdc_calib_datas[j].tag = false;
                 }
+                
+                break;
             }
-        }
-    }
+            */
 
-
-    // 读取Ch4793 TDC分布图
-    for (int i=1; i<=h_TDC_Channels->GetNbinsX(); i++)
-    {
-        int tdc_entry = h_TDC_Channels->GetBinContent(i);
-        double tdc_dt = h_TDC_Channels->GetBinLowEdge(i);
-
-        if (tdc_entry != 0)
-        {
-            tdc_entries.push_back(tdc_entry);
-            tdc_dts.push_back(tdc_dt);
-        }
-    }
-    
-    // 计算相邻bin的比值
-    for (int i=0; i<tdc_entries.size(); i++)
-    {
-       if (i == 0)
-        {
-            tdc_ratios.push_back(0);
-        }
-        else
-        {
-            tdc_ratios.push_back(static_cast<double>(tdc_entries[i])/tdc_entries[i-1]); // ratio=bin/(bin-1)
-        }
-    }
-
-    //将击中、时间、比值存入结构体
-    for(int i=0; i<tdc_entries.size(); i++)
-    {
-        TDC_Struct data;
-
-        data.entry = tdc_entries[i];
-        data.dt = tdc_dts[i];
-        data.ratio = tdc_ratios[i];
-        data.tag = true;
-
-        raw_tdc_calib_datas.push_back(data);
-    }
-
-    for(int i=0; i<raw_tdc_calib_datas.size(); i++)
-    {
-        // 去除TDC分布图中靠前突变的部分
-        /*
-        double diff = 1.0 - raw_tdc_calib_datas[i].ratio;
-        if(i > 0 && std::fabs(diff) > 0.3 
-            && raw_tdc_calib_datas[i].dt <= 0.0)
-        {
-            for(int j=0; j<=i; j++)
+            // 去除TDC时间大于等于零的部分
+            if(raw_tdc_calib_datas[i].dt >= 0.0)
             {
-                raw_tdc_calib_datas[j].tag = false;
+                raw_tdc_calib_datas[i].tag = false;
             }
-            
-            break;
+        }
+
+        // 去除TDC分布图中Entries与前一个Bin相差过大的Bin+该Bin之后的所有Bin
+        /*
+        for(int i=0; i<raw_tdc_calib_datas.size(); i++)
+        {
+            double diff_with_last = 1.0 - raw_tdc_calib_datas[i].ratio;
+            if(i > 0 && std::fabs(diff_with_last) > 0.3 
+                && raw_tdc_calib_datas[i].tag != false)
+            {
+                for(int j=i; j<raw_tdc_calib_datas.size(); j++)
+                {
+                    raw_tdc_calib_datas[j].tag = false;
+                }
+                
+                break;
+            }
         }
         */
 
-        // 去除TDC时间大于等于零的部分
-        if(raw_tdc_calib_datas[i].dt >= 0.0)
+        // 去除TDC分布图中Entries与第一个Bin相差过大的Bin+该Bin之后的所有Bin
+        /*
+        double entries_1st;
+        for(int j=0; j<raw_tdc_calib_datas.size(); j++)
         {
-            raw_tdc_calib_datas[i].tag = false;
-        }
-    }
-
-    // 去除TDC分布图中Entries与前一个Bin相差过大的Bin+该Bin之后的所有Bin
-    /*
-    for(int i=0; i<raw_tdc_calib_datas.size(); i++)
-    {
-        double diff_with_last = 1.0 - raw_tdc_calib_datas[i].ratio;
-        if(i > 0 && std::fabs(diff_with_last) > 0.3 
-            && raw_tdc_calib_datas[i].tag != false)
-        {
-            for(int j=i; j<raw_tdc_calib_datas.size(); j++)
+            if (raw_tdc_calib_datas[j].tag != false)
             {
-                raw_tdc_calib_datas[j].tag = false;
+                entries_1st = raw_tdc_calib_datas[j].entry; // 获取第一个恰当的TDCBin的Entries
+
+                break;
             }
-            
-            break;
         }
-    }
-    */
-
-    // 去除TDC分布图中Entries与第一个Bin相差过大的Bin+该Bin之后的所有Bin
-    /*
-    double entries_1st;
-    for(int j=0; j<raw_tdc_calib_datas.size(); j++)
-    {
-        if (raw_tdc_calib_datas[j].tag != false)
+        
+        for (int i=0; i<raw_tdc_calib_datas.size(); i++)
         {
-            entries_1st = raw_tdc_calib_datas[j].entry; // 获取第一个恰当的TDCBin的Entries
-
-            break;
-        }
-    }
-    
-    for (int i=0; i<raw_tdc_calib_datas.size(); i++)
-    {
-        double diff_with_1st = 1.0 - static_cast<double>(raw_tdc_calib_datas[i].entry) / entries_1st; // 1-与第一个Bin的比值
-        if(i > 0 && std::fabs(diff_with_1st) > 0.4 && raw_tdc_calib_datas[i].dt <= 0.0 
-            && raw_tdc_calib_datas[i].tag == true)
-        {
-            for(int j=i; j<raw_tdc_calib_datas.size(); j++)
+            double diff_with_1st = 1.0 - static_cast<double>(raw_tdc_calib_datas[i].entry) / entries_1st; // 1-与第一个Bin的比值
+            if(i > 0 && std::fabs(diff_with_1st) > 0.4 && raw_tdc_calib_datas[i].dt <= 0.0 
+                && raw_tdc_calib_datas[i].tag == true)
             {
-                raw_tdc_calib_datas[j].tag = false;
+                for(int j=i; j<raw_tdc_calib_datas.size(); j++)
+                {
+                    raw_tdc_calib_datas[j].tag = false;
+                }
+
+                break;
             }
-
-            break;
         }
-    }
-    */
+        */
 
-    // 保存为新结构体
-    for(int i=0; i<raw_tdc_calib_datas.size(); i++)
-    {
-        if(raw_tdc_calib_datas[i].tag != false)
+        // 保存为新结构体
+        for(int i=0; i<raw_tdc_calib_datas.size(); i++)
         {
-            tdc_calib_datas.push_back(raw_tdc_calib_datas[i]);
+            if(raw_tdc_calib_datas[i].tag != false)
+            {
+                tdc_calib_datas.push_back(raw_tdc_calib_datas[i]);
+            }
         }
+
+        // 计算DCR  
+        for(int i=0; i<tdc_calib_datas.size(); i++)
+        {
+            nhits += tdc_calib_datas[i].entry;
+        }
+
+        sumtime = std::fabs(tdc_calib_datas[0].dt-tdc_calib_datas.back().dt-2.5)
+            * 1e-9 * static_cast<double>(Nentries);
+
+        dcr_channel = static_cast<double>(nhits) / sumtime;
+        dcr = dcr_channel / (50.7*50.7*0.5);
+
+        DCR_With_ID dcr_tmp;
+        dcr_tmp.ch_id = l;
+        dcr_tmp.dcr_ch = dcr;
+        dcrs.push_back(dcr_tmp);
+
+
+        // 清空容器 开始读取下一个Channel
+        tdc_entries.clear();
+        tdc_dts.clear();
+        tdc_ratios.clear();
+        raw_tdc_calib_datas.clear();
+        tdc_calib_datas.clear();
+        nhits = 0;
+        sumtime = 0;
     }
 
-    // 填充Ratio图
-    std::vector<double> bin_edges;
-    for (int i=0; i<tdc_calib_datas.size(); i++) 
+    // 填图
+    for (const auto& tmp : dcrs) 
     {
-        bin_edges.push_back(tdc_calib_datas[i].dt);
+        int bin = h_DCR->FindBin(tmp.ch_id);
+        h_DCR->SetBinContent(bin, tmp.dcr_ch);
     }
-
-    bin_edges.push_back(0.0);
-
-    TH1F *h_Ratio_AdjBin = new TH1F("Ratio_AdjacentBin", "TDC Ratio; dt[ns]", 
-        bin_edges.size()-1, bin_edges.data());
-
-    for (int i=0; i<tdc_calib_datas.size(); i++) 
-    {
-        h_Ratio_AdjBin->SetBinContent(i+1, tdc_calib_datas[i].ratio);
-    }
-
-    // 计算DCR  
-    for(int i=0; i<tdc_calib_datas.size(); i++)
-    {
-        nhits += tdc_calib_datas[i].entry;
-    }
-
-    sumtime = std::fabs(tdc_calib_datas[0].dt-tdc_calib_datas.back().dt-2.5)
-        * 1e-9 * static_cast<double>(Nentries);
-
-    dcr_channel = static_cast<double>(nhits) / sumtime;
-    dcr = dcr_channel / (50.7*50.7*0.5);
-    
-    std::cout << "DCR for Ch4793:" << dcr << std::endl;
-
-    
-
-
 
     // 输出
-    
+    /*
     std::ofstream tdc_outfile(outputTxtFile);
     tdc_outfile << "dt(ns)\ttdc_entries\tratio" << std::endl;
 
@@ -367,6 +402,7 @@ void process_file(const std::string& inputFile) {
     }
 
     tdc_outfile.close();
+    */
     ////////////////////////////////////////////////
 
     // 保存输出
@@ -376,17 +412,16 @@ void process_file(const std::string& inputFile) {
         output->cd();
 
         // 保存全局直方图
-        h_ADCs->Write();
-        h_TDCs->Write();
-        h_channelid->Write();
-        h_channels->Write();
-        h_Widths->Write();
-        h_Baselines->Write();
-        h_OF1s->Write();
-        h_OF2s->Write();
-        //
-        h_Ratio_AdjBin->Write();
-        h_TDC_Channels->Write();
+        // h_ADCs->Write();
+        // h_TDCs->Write();
+        // h_channelid->Write();
+        // h_channels->Write();
+        // h_Widths->Write();
+        // h_Baselines->Write();
+        // h_OF1s->Write();
+        // h_OF2s->Write();
+        // h_TDC_Channels->Write();
+        h_DCR->Write();
 
         output->Close();
         std::cout << "输出已保存到: " << outputFile << std::endl;
