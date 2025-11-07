@@ -17,7 +17,8 @@
 #include "TStyle.h"
 #include "TLatex.h"
 const std::vector<std::string> inputFiles = {
-    "./rtraw_data/rtraw_411_001.root",
+    "./rtraw_data/rtraw_411_001.root"
+    /*
     "./rtraw_data/rtraw_411_002.root",
     "./rtraw_data/rtraw_411_003.root",
     "./rtraw_data/rtraw_411_004.root",
@@ -27,6 +28,7 @@ const std::vector<std::string> inputFiles = {
     "./rtraw_data/rtraw_411_008.root",
     "./rtraw_data/rtraw_411_009.root",
     "./rtraw_data/rtraw_411_010.root"
+    */
 };
 
 // 主执行函数
@@ -47,7 +49,7 @@ void process_file(const std::string& inputFile) {
 
     // std::string outputFile = "./output_elec/elec_411_001.root";
     ////////////////////////////////////////////////
-    //std::string outputTxtFile = "./output_file/tdc_411_001.txt";
+    std::string outputTxtFile = "./output_file/tdc_411_001.txt";
     ////////////////////////////////////////////////
     
     // 打开输入文件
@@ -94,7 +96,7 @@ void process_file(const std::string& inputFile) {
         double ratio; // TDC分布图相邻Bin的比值
         bool tag; // 标记是否去除
     };
-    struct DCR_With_ID
+    struct DCR_Struct
     {
         int ch_id; // 通道号
         double dcr_ch; // DCR
@@ -104,7 +106,7 @@ void process_file(const std::string& inputFile) {
     std::vector<double> tdc_ratios;
     std::vector<TDC_Struct> raw_tdc_calib_datas;
     std::vector<TDC_Struct> tdc_calib_datas;
-    std::vector<DCR_With_ID> dcrs;
+    std::vector<DCR_Struct> dcrs;
     double nhits = 0;
     double sumtime = 0;
     double dcr_channel;
@@ -173,7 +175,7 @@ void process_file(const std::string& inputFile) {
 
         if(tdc_entries.size() == 0) // 如果某个Channel没有计数 则直接开始读取下一个Channel
         {
-            DCR_With_ID dcr_tmp;
+            DCR_Struct dcr_tmp;
             dcr_tmp.ch_id = l;
             dcr_tmp.dcr_ch = 0;
             dcrs.push_back(dcr_tmp);
@@ -209,7 +211,6 @@ void process_file(const std::string& inputFile) {
         for(int i=0; i<raw_tdc_calib_datas.size(); i++)
         {
             // 去除TDC分布图中靠前突变的部分
-            /*
             double diff = 1.0 - raw_tdc_calib_datas[i].ratio;
             if(i > 0 && std::fabs(diff) > 0.3 
                 && raw_tdc_calib_datas[i].dt <= 0.0)
@@ -221,8 +222,10 @@ void process_file(const std::string& inputFile) {
                 
                 break;
             }
-            */
+        }
 
+        for(int i=0; i<raw_tdc_calib_datas.size(); i++)
+        {
             // 去除TDC时间大于等于零的部分
             if(raw_tdc_calib_datas[i].dt >= 0.0)
             {
@@ -231,7 +234,6 @@ void process_file(const std::string& inputFile) {
         }
 
         // 去除TDC分布图中Entries与前一个Bin相差过大的Bin+该Bin之后的所有Bin
-        /*
         for(int i=0; i<raw_tdc_calib_datas.size(); i++)
         {
             double diff_with_last = 1.0 - raw_tdc_calib_datas[i].ratio;
@@ -246,16 +248,14 @@ void process_file(const std::string& inputFile) {
                 break;
             }
         }
-        */
 
         // 去除TDC分布图中Entries与第一个Bin相差过大的Bin+该Bin之后的所有Bin
-        /*
         double entries_1st;
         for(int j=0; j<raw_tdc_calib_datas.size(); j++)
         {
             if (raw_tdc_calib_datas[j].tag != false)
             {
-                entries_1st = raw_tdc_calib_datas[j].entry; // 获取第一个恰当的TDCBin的Entries
+                entries_1st = raw_tdc_calib_datas[j].entry; // 获取第一个恰当的TDC Bin的Entries
 
                 break;
             }
@@ -275,7 +275,6 @@ void process_file(const std::string& inputFile) {
                 break;
             }
         }
-        */
 
         // 保存为新结构体
         for(int i=0; i<raw_tdc_calib_datas.size(); i++)
@@ -298,10 +297,27 @@ void process_file(const std::string& inputFile) {
         dcr_channel = static_cast<double>(nhits) / sumtime;
         dcr = dcr_channel / (50.7*50.7*0.5);
 
-        DCR_With_ID dcr_tmp;
+        DCR_Struct dcr_tmp;
         dcr_tmp.ch_id = l;
         dcr_tmp.dcr_ch = dcr;
         dcrs.push_back(dcr_tmp);
+
+        // 输出
+        /*
+        if (l == 4793)
+        {
+            std::ofstream tdc_outfile(outputTxtFile);
+            tdc_outfile << "dt(ns)\ttdc_entries\tratio" << std::endl;
+
+            for (int i=0; i<tdc_calib_datas.size(); i++)
+            {    
+                tdc_outfile << tdc_calib_datas[i].dt << '\t' << tdc_calib_datas[i].entry 
+                    << '\t' << std::fabs(1-tdc_calib_datas[i].ratio) << std::endl;
+            }
+
+            tdc_outfile.close();
+        }
+        */
 
 
         // 清空容器 开始读取下一个Channel
@@ -320,20 +336,7 @@ void process_file(const std::string& inputFile) {
         int bin = h_DCR->FindBin(tmp.ch_id);
         h_DCR->SetBinContent(bin, tmp.dcr_ch);
     }
-
-    // 输出
-    /*
-    std::ofstream tdc_outfile(outputTxtFile);
-    tdc_outfile << "dt(ns)\ttdc_entries\tratio" << std::endl;
-
-    for (int i=0; i<tdc_calib_datas.size(); i++)
-    {    
-        tdc_outfile << tdc_calib_datas[i].dt << '\t' << tdc_calib_datas[i].entry 
-            << '\t' << std::fabs(1-tdc_calib_datas[i].ratio) << std::endl;
-    }
-
-    tdc_outfile.close();
-    */
+    
     ////////////////////////////////////////////////
 
     // 保存输出
