@@ -17,8 +17,7 @@
 #include "TStyle.h"
 #include "TLatex.h"
 const std::vector<std::string> inputFiles = {
-    "./rtraw_data/rtraw_411_001.root"
-    /*
+    "./rtraw_data/rtraw_411_001.root",
     "./rtraw_data/rtraw_411_002.root",
     "./rtraw_data/rtraw_411_003.root",
     "./rtraw_data/rtraw_411_004.root",
@@ -28,7 +27,6 @@ const std::vector<std::string> inputFiles = {
     "./rtraw_data/rtraw_411_008.root",
     "./rtraw_data/rtraw_411_009.root",
     "./rtraw_data/rtraw_411_010.root"
-    */
 };
 
 // 主执行函数
@@ -47,7 +45,7 @@ void process_file(const std::string& inputFile) {
     std::string outputFile = "./output_elec/elec_411_" + fileIndex + ".root";
 
 
-    // std::string outputFile = "./output_elec/elec_411_002.root";
+    // std::string outputFile = "./output_elec/elec_411_001.root";
     ////////////////////////////////////////////////
     //std::string outputTxtFile = "./output_file/tdc_411_001.txt";
     ////////////////////////////////////////////////
@@ -82,77 +80,10 @@ void process_file(const std::string& inputFile) {
     
     Tao::CdTrigEvt* TrigEvt = new Tao::CdTrigEvt();
     TrigTree->SetBranchAddress("CdTrigEvt", &TrigEvt);    
-    
-    // 创建直方图
-    // TH1F *h_ADCs = new TH1F("ADCs", "ADCs Distribution", 20000, 0, 2e7); // 总ADC
-    // TH1F *h_Widths = new TH1F("Widths", "Widths Distribution", 2000, 0, 2000);
-    // TH1F *h_Baselines = new TH1F("Baselines", "Baselines Distribution", 300, 1900, 2200);
-    // TH1F *h_TDCs = new TH1F("TDCs", "TDCs Distribution", 800, -500, 1500); // 总TDC
-    // TH1F *h_channelid = new TH1F("channelid", "Channel ID Distribution", 8048, 0, 8048); // 每个事例中着火Channel的编号
-    // TH1F *h_channels = new TH1F("channels", "Channel Hits per Event", 8048, 0, 8048); // 每个事例中着火Channel的数量
-
-    // TH1F *h_OF1s = new TH1F("OF1s", "OF1s Distribution", 100, 0, 100);
-    // TH1F *h_OF2s = new TH1F("OF2s", "OF2s Distribution", 100, 0, 100);
-    // h_OF1s->SetStats(true);
-    // h_OF2s->SetStats(true);
-    
-    // 设置轴标签
-    // h_ADCs->GetXaxis()->SetTitle("ADC");
-    // h_channelid->GetXaxis()->SetTitle("Channel ID");
-    // h_channels->GetXaxis()->SetTitle("Channel Number");
-    // h_TDCs->GetXaxis()->SetTitle("TDC [ns]");
 
      // 处理事件
      int Nentries = ElecTree->GetEntries();
      std::cout << "找到事件数: " << Nentries << std::endl;
-
-    /*
-     for (int i = 0; i < Nentries; i++) // 循环每一事例
-    {
-        ElecTree->GetEntry(i);
-        TrigTree->GetEntry(i); // 确保获取触发时间
-        
-        //获取通道数据
-        std::vector<Tao::CdElecChannel> ElecfChannels_vec = ElecEvt->GetElecChannels();
-        h_channels->Fill(ElecfChannels_vec.size()); // 获取每一事例的Channel数量
-    
-        for (unsigned int k = 0; k < ElecfChannels_vec.size(); k++) // 循环事例i中每一Channel
-        {
-            Tao::CdElecChannel* ElecfChannel = &ElecfChannels_vec[k];
-            int channel_id = static_cast<int>(ElecfChannel->getChannelID()); // Channel编号
-            std::vector<float> Elec_ADCs = ElecfChannel->getADCs(); // 事例i中通道k的ADC
-            auto TDC16 = ElecfChannel->getTDCs(); // 事例i中通道k的TDC
-            std::vector<int64_t> Elec_TDCs(TDC16.begin(), TDC16.end());
-            std::vector<uint16_t> Elec_Widths = ElecfChannel->getWidths();
-            std::vector<uint16_t> Elec_Baselines = ElecfChannel->getBaselines();
-            std::vector<uint8_t> Elec_OF1s = ElecfChannel->getOF1s();
-            std::vector<uint8_t> Elec_OF2s = ElecfChannel->getOF2s();
-
-            h_channelid->Fill(channel_id);
-            
-            for (size_t j = 0; j < Elec_ADCs.size(); j++) // 循环每次着火 每次着火是一个Hit
-            {
-                float charge = Elec_ADCs[j];
-                float time = static_cast<float>(Elec_TDCs[j]);
-                float width = static_cast<float>(Elec_Widths[j]);
-                float baseline = static_cast<float>(Elec_Baselines[j]);
-                float of1 = static_cast<float>(Elec_OF1s[j]);
-                float of2 = static_cast<float>(Elec_OF2s[j]);
-
-                h_ADCs->Fill(charge);
-                h_TDCs->Fill(time);
-                h_Widths->Fill(width);
-                h_Baselines->Fill(baseline);
-                h_OF1s->Fill(of1);
-                h_OF2s->Fill(of2);
-
-                // std::cout << "Entry:" << i << ' ' << "ChannelID:" << channel_id << ' ' << "TDC:" << time << std::endl;
-                // Elec_ADCs.size()是第i个事例中，第k个通道的着火（Hit）次数
-            }
-        }
-
-    }
-    */
 
     // DCR Calibration
     ////////////////////////////////////////////////
