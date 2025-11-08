@@ -47,7 +47,7 @@ void process_file(const std::string& inputFile) {
 
     // std::string outputFile = "./output_elec/elec_411_001.root";
     ////////////////////////////////////////////////
-    // std::string outputTxtFile = "./output_file/tdc_411_001.txt";
+    //std::string outputTxtFile = "./output_file/tdc_411_001.txt";
     ////////////////////////////////////////////////
     
     // 打开输入文件
@@ -209,6 +209,7 @@ void process_file(const std::string& inputFile) {
         for(int i=0; i<raw_tdc_calib_datas.size(); i++)
         {
             // 去除TDC分布图中靠前突变的部分
+            /*
             double diff = 1.0 - raw_tdc_calib_datas[i].ratio;
             if(i > 0 && std::fabs(diff) > 0.3 
                 && raw_tdc_calib_datas[i].dt <= 0.0)
@@ -220,10 +221,8 @@ void process_file(const std::string& inputFile) {
                 
                 break;
             }
-        }
+            */
 
-        for(int i=0; i<raw_tdc_calib_datas.size(); i++)
-        {
             // 去除TDC时间大于等于零的部分
             if(raw_tdc_calib_datas[i].dt >= 0.0)
             {
@@ -232,6 +231,7 @@ void process_file(const std::string& inputFile) {
         }
 
         // 去除TDC分布图中Entries与前一个Bin相差过大的Bin+该Bin之后的所有Bin
+        /*
         for(int i=0; i<raw_tdc_calib_datas.size(); i++)
         {
             double diff_with_last = 1.0 - raw_tdc_calib_datas[i].ratio;
@@ -246,14 +246,16 @@ void process_file(const std::string& inputFile) {
                 break;
             }
         }
+        */
 
         // 去除TDC分布图中Entries与第一个Bin相差过大的Bin+该Bin之后的所有Bin
+        /*
         double entries_1st;
         for(int j=0; j<raw_tdc_calib_datas.size(); j++)
         {
             if (raw_tdc_calib_datas[j].tag != false)
             {
-                entries_1st = raw_tdc_calib_datas[j].entry; // 获取第一个恰当的TDC Bin的Entries
+                entries_1st = raw_tdc_calib_datas[j].entry; // 获取第一个恰当的TDCBin的Entries
 
                 break;
             }
@@ -273,6 +275,7 @@ void process_file(const std::string& inputFile) {
                 break;
             }
         }
+        */
 
         // 保存为新结构体
         for(int i=0; i<raw_tdc_calib_datas.size(); i++)
@@ -305,6 +308,7 @@ void process_file(const std::string& inputFile) {
             std::cout << "DCR for Ch4793:" << dcr << std::endl;
         }
 
+
         // 清空容器 开始读取下一个Channel
         tdc_entries.clear();
         tdc_dts.clear();
@@ -335,7 +339,6 @@ void process_file(const std::string& inputFile) {
 
     tdc_outfile.close();
     */
-    
     ////////////////////////////////////////////////
 
     // 保存输出
