@@ -17,8 +17,7 @@
 #include "TStyle.h"
 #include "TLatex.h"
 const std::vector<std::string> inputFiles = {
-    "./rtraw_data/rtraw_411_001.root"
-    /*
+    "./rtraw_data/rtraw_411_001.root",
     "./rtraw_data/rtraw_411_002.root",
     "./rtraw_data/rtraw_411_003.root",
     "./rtraw_data/rtraw_411_004.root",
@@ -28,7 +27,6 @@ const std::vector<std::string> inputFiles = {
     "./rtraw_data/rtraw_411_008.root",
     "./rtraw_data/rtraw_411_009.root",
     "./rtraw_data/rtraw_411_010.root"
-    */
 };
 
 // 主执行函数
@@ -49,7 +47,7 @@ void process_file(const std::string& inputFile) {
 
     // std::string outputFile = "./output_elec/elec_411_001.root";
     ////////////////////////////////////////////////
-    std::string outputTxtFile = "./output_file/tdc_411_001.txt";
+    // std::string outputTxtFile = "./output_file/tdc_411_001.txt";
     ////////////////////////////////////////////////
     
     // 打开输入文件
@@ -302,23 +300,10 @@ void process_file(const std::string& inputFile) {
         dcr_tmp.dcr_ch = dcr;
         dcrs.push_back(dcr_tmp);
 
-        // 输出
-        /*
-        if (l == 4793)
+        if(l == 4793)
         {
-            std::ofstream tdc_outfile(outputTxtFile);
-            tdc_outfile << "dt(ns)\ttdc_entries\tratio" << std::endl;
-
-            for (int i=0; i<tdc_calib_datas.size(); i++)
-            {    
-                tdc_outfile << tdc_calib_datas[i].dt << '\t' << tdc_calib_datas[i].entry 
-                    << '\t' << std::fabs(1-tdc_calib_datas[i].ratio) << std::endl;
-            }
-
-            tdc_outfile.close();
+            std::cout << "DCR for Ch4793:" << dcr << std::endl;
         }
-        */
-
 
         // 清空容器 开始读取下一个Channel
         tdc_entries.clear();
@@ -336,6 +321,20 @@ void process_file(const std::string& inputFile) {
         int bin = h_DCR->FindBin(tmp.ch_id);
         h_DCR->SetBinContent(bin, tmp.dcr_ch);
     }
+
+    // 输出
+    /*
+    std::ofstream tdc_outfile(outputTxtFile);
+    tdc_outfile << "dt(ns)\ttdc_entries\tratio" << std::endl;
+
+    for (int i=0; i<tdc_calib_datas.size(); i++)
+    {    
+        tdc_outfile << tdc_calib_datas[i].dt << '\t' << tdc_calib_datas[i].entry 
+            << '\t' << std::fabs(1-tdc_calib_datas[i].ratio) << std::endl;
+    }
+
+    tdc_outfile.close();
+    */
     
     ////////////////////////////////////////////////
 
