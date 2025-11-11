@@ -16,17 +16,17 @@
 #include "TStyle.h"
 #include "TLatex.h"
 const std::vector<std::string> inputFiles = {
-    "./rtraw_data/rtraw_411_001.root"
+    "./rtraw_data/rtraw_514_001.root"
     /*
-    "./rtraw_data/rtraw_411_002.root",
-    "./rtraw_data/rtraw_411_003.root",
-    "./rtraw_data/rtraw_411_004.root",
-    "./rtraw_data/rtraw_411_005.root",
-    "./rtraw_data/rtraw_411_006.root",
-    "./rtraw_data/rtraw_411_007.root",
-    "./rtraw_data/rtraw_411_008.root",
-    "./rtraw_data/rtraw_411_009.root",
-    "./rtraw_data/rtraw_411_010.root"
+    "./rtraw_data/rtraw_425_002.root",
+    "./rtraw_data/rtraw_425_006.root",
+    "./rtraw_data/rtraw_425_009.root",
+    "./rtraw_data/rtraw_425_010.root",
+    "./rtraw_data/rtraw_425_011.root",
+    "./rtraw_data/rtraw_425_012.root",
+    "./rtraw_data/rtraw_425_013.root",
+    "./rtraw_data/rtraw_425_014.root",
+    "./rtraw_data/rtraw_425_017.root"
     */
 };
 
@@ -35,19 +35,19 @@ const std::vector<std::string> inputFiles = {
 void process_file(const std::string& inputFile) {
     std::cout << "处理文件: " << inputFile << std::endl;
     // 批量处理所有文件
-    size_t pos = inputFile.find("rtraw_411_");
+    size_t pos = inputFile.find("rtraw_514_");
     if (pos == std::string::npos) {
         std::cerr << "错误：无法从文件路径提取索引" << std::endl;
         return;
     }
 
     // 单通道图
-    const int channel_ana_id = 4098;
+    const int channel_ana_id = 4373;
     std::string id_string = std::to_string(channel_ana_id);
     std::string fileIndex = inputFile.substr(pos + 10);
     fileIndex = fileIndex.substr(0, fileIndex.find(".root"));
-    std::string outputFile = "./single_channel_elec/channel_"+ id_string
-    +"_411_" + fileIndex + ".root";
+    std::string outputFile = "./output_elec/elec_channel_"+ id_string
+    +"_514_" + fileIndex + ".root";
     
     // 打开输入文件
     TFile *file2 = TFile::Open(inputFile.c_str());
