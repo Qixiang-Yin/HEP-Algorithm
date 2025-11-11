@@ -1,7 +1,8 @@
 // DCR_Calib.C
 // by Qixiang Yin
 // 使用前请确保已设置TAO环境: source /path/to/taosw/setup.sh
-// 运行方式: root -l DCR_Calib.C
+// 使用方法 root -l -q 'DCR_Calib.C("rtraw_data/rtraw_514_001.root")' 单文件
+// 使用方法 root -l -q 'DCR_Calib.C()' 批处理文件（旧方式）
 
 #include <iostream>
 #include <string>
@@ -17,16 +18,16 @@
 #include "TStyle.h"
 #include "TLatex.h"
 const std::vector<std::string> inputFiles = {
-    "./rtraw_data/rtraw_411_001.root",
-    "./rtraw_data/rtraw_411_002.root",
-    "./rtraw_data/rtraw_411_003.root",
-    "./rtraw_data/rtraw_411_004.root",
-    "./rtraw_data/rtraw_411_005.root",
-    "./rtraw_data/rtraw_411_006.root",
-    "./rtraw_data/rtraw_411_007.root",
-    "./rtraw_data/rtraw_411_008.root",
-    "./rtraw_data/rtraw_411_009.root",
-    "./rtraw_data/rtraw_411_010.root"
+    "./rtraw_data/rtraw_514_001.root",
+    "./rtraw_data/rtraw_514_002.root",
+    "./rtraw_data/rtraw_514_003.root",
+    "./rtraw_data/rtraw_514_004.root",
+    "./rtraw_data/rtraw_514_005.root",
+    "./rtraw_data/rtraw_514_006.root",
+    "./rtraw_data/rtraw_514_007.root",
+    "./rtraw_data/rtraw_514_008.root",
+    "./rtraw_data/rtraw_514_009.root",
+    "./rtraw_data/rtraw_514_010.root"
 };
 
 // 主执行函数
@@ -34,7 +35,7 @@ const std::vector<std::string> inputFiles = {
 void process_file(const std::string& inputFile) {
     std::cout << "处理文件: " << inputFile << std::endl;
     // 批量处理所有文件
-    size_t pos = inputFile.find("rtraw_411_");
+    size_t pos = inputFile.find("rtraw_514_");
     if (pos == std::string::npos) {
         std::cerr << "错误：无法从文件路径提取索引" << std::endl;
         return;
@@ -42,12 +43,12 @@ void process_file(const std::string& inputFile) {
 
     std::string fileIndex = inputFile.substr(pos + 10);
     fileIndex = fileIndex.substr(0, fileIndex.find(".root"));
-    std::string outputFile = "./output_elec/elec_411_" + fileIndex + ".root";
+    std::string outputFile = "./output_dcr/dcr_514_" + fileIndex + ".root";
 
 
     // std::string outputFile = "./output_elec/elec_411_001.root";
     ////////////////////////////////////////////////
-    //std::string outputTxtFile = "./output_file/tdc_411_001.txt";
+    // std::string outputTxtFile = "./output_file/tdc_411_001.txt";
     ////////////////////////////////////////////////
     
     // 打开输入文件
@@ -376,4 +377,17 @@ void DCR_Calib() {
     }
     
     std::cout << "所有文件处理完成！" << std::endl;
+}
+
+// 主函数 - 从外部传递文件名作为参数
+// 使用方法 root -l -q 'DCR_Calib.C("rtraw_data/rtraw_514_001.root")' 单文件
+// 使用方法 root -l -q 'DCR_Calib.C()' 批处理文件（旧方式）
+void DCR_Calib(const char* inputFile) {
+    if (inputFile == nullptr || strlen(inputFile) == 0) {
+        return;
+    }
+
+    std::cout << "开始处理传入文件..." << std::endl;
+
+    process_file(inputFile);
 }
