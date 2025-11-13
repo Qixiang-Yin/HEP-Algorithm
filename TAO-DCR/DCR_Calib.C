@@ -18,6 +18,7 @@
 #include "TStyle.h"
 #include "TLatex.h"
 const std::vector<std::string> inputFiles = {
+    /*
     "./rtraw_data/rtraw_514_001.root",
     "./rtraw_data/rtraw_514_002.root",
     "./rtraw_data/rtraw_514_003.root",
@@ -27,7 +28,9 @@ const std::vector<std::string> inputFiles = {
     "./rtraw_data/rtraw_514_007.root",
     "./rtraw_data/rtraw_514_008.root",
     "./rtraw_data/rtraw_514_009.root",
-    "./rtraw_data/rtraw_514_010.root"
+    "./rtraw_data/rtraw_514_010.root",
+    */
+    "root://junoeos01.ihep.ac.cn//eos/juno/tao-rtraw/J25.6.0/gitVcd310cd8/global_trigger/00000000/00000500/516/RUN.516.TAODAQ.TEST.ds-0.global_trigger.20251108125748.001_J25.6.0_gitVcd310cd8.rtraw"
 };
 
 // 主执行函数
@@ -35,15 +38,17 @@ const std::vector<std::string> inputFiles = {
 void process_file(const std::string& inputFile) {
     std::cout << "处理文件: " << inputFile << std::endl;
     // 批量处理所有文件
-    size_t pos = inputFile.find("rtraw_514_");
+    size_t pos = inputFile.find("_J25.6.0_gitVcd310cd8.rtraw");
     if (pos == std::string::npos) {
         std::cerr << "错误：无法从文件路径提取索引" << std::endl;
         return;
     }
 
-    std::string fileIndex = inputFile.substr(pos + 10);
-    fileIndex = fileIndex.substr(0, fileIndex.find(".root"));
-    std::string outputFile = "./output_dcr/dcr_514_" + fileIndex + ".root";
+    std::string fileIndex = inputFile.substr(pos - 3);
+    fileIndex = fileIndex.substr(0, fileIndex.find("_J25"));
+    std::string outputFile = "./output_dcr/dcr_527_" + fileIndex + ".root";
+
+    std::cout << "输出文件: " << outputFile << std::endl;
 
 
     // std::string outputFile = "./output_elec/elec_411_001.root";
@@ -110,13 +115,14 @@ void process_file(const std::string& inputFile) {
     double sumtime = 0;
     double dcr_channel;
     double dcr;
-    TH1F* h_DCR = new TH1F("DCR", "DCR for Channels", 8048, 0, 8048);
+    TH1F* h_DCR = new TH1F("DCR", "DCR for Channels", 50000, 0, 50000);
     h_DCR->GetXaxis()->SetTitle("Channel ID");
     h_DCR->GetYaxis()->SetTitle("DCR (Hz/mm2)");
 
-    const int number_channel = 8048;
+    const int number_channel = 50000;
     TH1F* h_TDC_Channels[number_channel];
-    for (int i = 0; i < number_channel; i++) {
+    for (int i = 0; i < number_channel; i++) 
+    {
         TString name = Form("TDC_Channels_%d", i);
         TString title = Form("TDC for Channel %d", i);
         h_TDC_Channels[i] = new TH1F(name, title, 800, -500, 1500);
