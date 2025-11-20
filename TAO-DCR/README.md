@@ -75,6 +75,8 @@ source /path/to/taosw/setup.sh
 
 首先编译离线软件`taosw`，执行`source taosw/complie.sh`
 
+编译完成后，此后运行脚本只需要`source taosw/setup.sh`加载TAO环境
+
 运行脚本`python download_dat.py`，从eos盘内下载所有DAT文件（DAQ Raw Data）：
 
 ```python
@@ -245,3 +247,162 @@ echo "全部作业已成功提交！"
 会把`./rtraw_data`文件夹下的全部Rtraw文件作为输入刻度DCR。
 
 `Channel_Analysis.C`文件用于查看某一通道的电子学数据，用于异常分析。
+
+**2025.11.20 Update**
+
+改变文件读取方式，现在可以直接从eos盘读取已经转换好的Rtraw文件并进行分析；
+
+首先编译离线软件`taosw`，执行`source taosw/complie.sh`
+
+编译完成后，此后运行脚本只需要`source taosw/setup.sh`加载TAO环境
+
+向集群交作业，赋予脚本权限`chmod +x dcr_job.sh`，运行脚本`./dcr_job.sh`，刻度eos盘中某一Run的各通道DCR：
+
+```bash
+#!/bin/bash
+# ===========================================
+# 批量生成并提交 DCR_Calib ROOT 作业
+# by Qixiang Yin
+# ===========================================
+
+# ========== 基本配置 ==========
+EOS_DIR="root://junoeos01.ihep.ac.cn//eos/juno/tao-rtraw/J25.6.0/gitVcd310cd8/CD/00000000/00000500/527"
+JOB_DIR="./dcr_job_lists"
+ROOT_MACRO="./DCR_Calib.C"
+SUBMIT_CMD="hep_sub"
+
+# ========== 初始化 ==========
+mkdir -p "$JOB_DIR"
+echo "输入目录: $EOS_DIR"
+echo "作业脚本目录: $JOB_DIR"
+echo ""
+
+# ========== 获取EOS文件列表 ==========
+echo "正在从EOS目录获取文件列表..."
+EOS_PATH=$(echo "$EOS_DIR" | sed 's|^root://junoeos01.ihep.ac.cn||')
+FILE_LIST=$(eos root://junoeos01.ihep.ac.cn ls "$EOS_PATH" | grep '\.rtraw$')
+
+if [ -z "$FILE_LIST" ]; then
+    echo "未找到任何 .rtraw 文件"
+    exit 1
+fi
+
+# ========== 生成作业脚本 ==========
+for fname in $FILE_LIST; do
+    # 文件完整路径
+    file="${EOS_DIR}/${fname}"
+
+    # 提取编号 例：RUN.527.TAODAQ.TEST.ds-0.global_trigger.20251108125748.001_J25.6.0_gitVcd310cd8.rtraw
+    file_idx=$(echo "$fname" | grep -oE '\.[0-9]{3}_' | tr -d '._')
+    [ -z "$file_idx" ] && file_idx="unknown"
+
+    # 作业脚本路径
+    job_name="job_527_${file_idx}.sh"
+    job_path="${JOB_DIR}/${job_name}"
+
+    # 写入作业脚本
+    cat > "$job_path" <<EOF
+#!/bin/bash
+# ====== Job Script: $fname ======
+
+echo "开始处理文件: $file"
+root -l -q '${ROOT_MACRO}("${file}")'
+echo "完成处理: $file"
+EOF
+
+    chmod +x "$job_path"
+    echo "Created job script: $job_path"
+done
+
+echo ""
+echo "所有作业脚本已生成，开始提交到集群..."
+
+# ========== 提交所有作业 ==========
+for job_script in "$JOB_DIR"/job_*.sh; do
+    echo "Submitting $job_script ..."
+    $SUBMIT_CMD "$job_script"
+done
+
+echo ""
+echo "全部作业已成功提交！"
+```
+
+在`./output_dcr`文件夹下输出刻度结果
+
+`Channel_Analysis.C`可以批量输出所有通道的电子学数据，用于异常分析
+
+向集群交作业，赋予脚本权限`chmod +x elec_job.sh`，运行脚本`./elec_job.sh`，产生所有通道的电子学数据：
+
+```bash
+#!/bin/bash
+# ===========================================
+# 批量生成并提交 Channel_Analysis ROOT 作业
+# by Qixiang Yin
+# ===========================================
+
+# ========== 基本配置 ==========
+EOS_DIR="root://junoeos01.ihep.ac.cn//eos/juno/tao-rtraw/J25.6.0/gitVcd310cd8/CD/00000000/00000500/527"
+JOB_DIR="./elec_job_lists"
+ROOT_MACRO="./Channel_Analysis.C"
+SUBMIT_CMD="hep_sub"
+
+# ========== 初始化 ==========
+mkdir -p "$JOB_DIR"
+echo "输入目录: $EOS_DIR"
+echo "作业脚本目录: $JOB_DIR"
+echo ""
+
+# ========== 获取EOS文件列表 ==========
+echo "正在从EOS目录获取文件列表..."
+EOS_PATH=$(echo "$EOS_DIR" | sed 's|^root://junoeos01.ihep.ac.cn||')
+FILE_LIST=$(eos root://junoeos01.ihep.ac.cn ls "$EOS_PATH" | grep '\.rtraw$')
+
+if [ -z "$FILE_LIST" ]; then
+    echo "未找到任何 .rtraw 文件"
+    exit 1
+fi
+
+# ========== 生成作业脚本 ==========
+for fname in $FILE_LIST; do
+    # 文件完整路径
+    file="${EOS_DIR}/${fname}"
+
+    # 提取编号 例：RUN.527.TAODAQ.TEST.ds-0.global_trigger.20251108125748.001_J25.6.0_gitVcd310cd8.rtraw
+    file_idx=$(echo "$fname" | grep -oE '\.[0-9]{3}_' | tr -d '._')
+    [ -z "$file_idx" ] && file_idx="unknown"
+
+    # 作业脚本路径
+    job_name="job_527_${file_idx}.sh"
+    job_path="${JOB_DIR}/${job_name}"
+
+    # 写入作业脚本
+    cat > "$job_path" <<EOF
+#!/bin/bash
+# ====== Job Script: $fname ======
+
+echo "开始处理文件: $file"
+root -l -q '${ROOT_MACRO}("${file}")'
+echo "完成处理: $file"
+EOF
+
+    chmod +x "$job_path"
+    echo "Created job script: $job_path"
+done
+
+echo ""
+echo "所有作业脚本已生成，开始提交到集群..."
+
+# ========== 提交所有作业 ==========
+for job_script in "$JOB_DIR"/job_*.sh; do
+    echo "Submitting $job_script ..."
+    $SUBMIT_CMD "$job_script"
+done
+
+echo ""
+echo "全部作业已成功提交！"
+```
+
+输出的电子学数据文件存放在`./output_elec`文件夹下
+
+`Single_Channel_Analysis.C`文件用于查看单一通道的电子学数据，提高效率，用于异常分析。
+
