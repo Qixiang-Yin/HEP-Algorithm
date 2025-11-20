@@ -1,6 +1,6 @@
-// Channel_Analysis.C
+// Single_Channel_Analysis.C
 // by Qixiang Yin
-// 输出所有通道的信息
+// 单通道分析
 // 使用前请确保已设置TAO环境: source /path/to/taosw/setup.sh
 // 运行方式: root -l Channel_Analysis.C
 
@@ -16,8 +16,8 @@
 #include "TStyle.h"
 #include "TLatex.h"
 const std::vector<std::string> inputFiles = {
-    // "root://junoeos01.ihep.ac.cn//eos/juno/tao-rtraw/J25.6.0/gitVcd310cd8/CD/00000000/00000500/527/RUN.527.TAODAQ.TEST.ds-0.CD.20251110224448.001_J25.6.0_gitVcd310cd8.rtraw"
-
+    "root://junoeos01.ihep.ac.cn//eos/juno/tao-rtraw/J25.6.0/gitVcd310cd8/CD/00000000/00000500/527/RUN.527.TAODAQ.TEST.ds-0.CD.20251110224448.001_J25.6.0_gitVcd310cd8.rtraw"
+    
 };
 
 // 主执行函数
@@ -31,9 +31,13 @@ void process_file(const std::string& inputFile) {
         return;
     }
 
+    // 单通道图
+    const int channel_ana_id = 5824;
+    std::string id_string = std::to_string(channel_ana_id);
     std::string fileIndex = inputFile.substr(pos - 3);
     fileIndex = fileIndex.substr(0, fileIndex.find("_J25"));
-    std::string outputFile = "./output_elec/elec_channel_527_" + fileIndex + ".root";
+    std::string outputFile = "./output_elec/elec_channel_"+ id_string
+    +"_527_" + fileIndex + ".root";
     
     // 打开输入文件
     TFile *file2 = TFile::Open(inputFile.c_str());
@@ -77,15 +81,12 @@ void process_file(const std::string& inputFile) {
     h_channels->GetXaxis()->SetTitle("Channel Number");
     h_TDCs->GetXaxis()->SetTitle("TDC [ns]");
 
-    const int number_channel = 50000;
-    TH1F* h_TDC_Channels[number_channel];
-    for (int i = 0; i < number_channel; i++) 
-    {
-        TString name = Form("TDC_Channels_%d", i);
-        TString title = Form("TDC for Channel %d", i);
-        h_TDC_Channels[i] = new TH1F(name, title, 800, -500, 1500);
-        h_TDC_Channels[i]->GetXaxis()->SetTitle("TDC [ns]");
-    }
+    // 单通道图
+    TString name = Form("TDC_Channel_%d", channel_ana_id);
+    TString title = Form("TDC for Channel %d", channel_ana_id);
+    TH1F* h_TDC_Channel = new TH1F(name, title, 800, -500, 1500);
+    h_TDC_Channel->GetXaxis()->SetTitle("TDC [ns]");
+    std::cout << "当前正在分析通道: " << channel_ana_id << std::endl;
 
     // 处理事件
     int Nentries = ElecTree->GetEntries();
@@ -94,6 +95,7 @@ void process_file(const std::string& inputFile) {
     for (int i = 0; i < Nentries; i++) // 循环每一事例
     {
         ElecTree->GetEntry(i);
+        // TrigTree->GetEntry(i); // 确保获取触发时间
         
         //获取通道数据
         std::vector<Tao::CdElecChannel> ElecfChannels_vec = ElecEvt->GetElecChannels();
@@ -118,10 +120,19 @@ void process_file(const std::string& inputFile) {
 
                 h_ADCs->Fill(charge);
                 h_TDCs->Fill(time);
-                h_TDC_Channels[channel_id]->Fill(time);
 
                 // std::cout << "Entry:" << i << ' ' << "ChannelID:" << channel_id << ' ' << "TDC:" << time << std::endl;
                 // Elec_ADCs.size()是第i个事例中，第k个通道的着火（Hit）次数
+            }
+
+            // 单通道图
+            if (channel_id == channel_ana_id)
+            {
+                for (size_t j = 0; j < Elec_ADCs.size(); j++) // 循环每次着火 每次着火是一个Hit
+                {
+                    float time = static_cast<float>(Elec_TDCs[j]);
+                    h_TDC_Channel->Fill(time);
+                }
             }
         }
 
@@ -138,25 +149,7 @@ void process_file(const std::string& inputFile) {
         h_TDCs->Write();
         h_channelid->Write();
         h_channels->Write();
-
-        // 无着火通道不存图
-        for (int i=0; i<number_channel; i++)
-        {
-            bool save_hist = false;
-            for (int j=1; j<=h_TDC_Channels[i]->GetNbinsX(); j++)
-            {
-                if (h_TDC_Channels[i]->GetBinContent(j) != 0)
-                {
-                    save_hist = true;
-                    break;
-                }
-            }
-
-            if (save_hist == true)
-            {
-                h_TDC_Channels[i]->Write();
-            }
-        }
+        h_TDC_Channel->Write();
     
         output->Close();
         std::cout << "输出已保存到: " << outputFile << std::endl;
@@ -170,7 +163,7 @@ void process_file(const std::string& inputFile) {
 }
 
 // 主函数 - 批量处理所有文件
-void Channel_Analysis() {
+void Single_Channel_Analysis() {
     std::cout << "开始批量处理文件..." << std::endl;
     std::cout << "文件数量: " << inputFiles.size() << std::endl;
     
@@ -179,14 +172,4 @@ void Channel_Analysis() {
     }
     
     std::cout << "所有文件处理完成！" << std::endl;
-}
-
-void Channel_Analysis(const char* inputFile) {
-    if (inputFile == nullptr || strlen(inputFile) == 0) {
-        return;
-    }
-
-    std::cout << "开始处理传入文件..." << std::endl;
-
-    process_file(inputFile);
 }

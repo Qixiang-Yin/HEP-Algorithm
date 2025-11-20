@@ -30,7 +30,7 @@ const std::vector<std::string> inputFiles = {
     "./rtraw_data/rtraw_514_009.root",
     "./rtraw_data/rtraw_514_010.root",
     */
-    "root://junoeos01.ihep.ac.cn//eos/juno/tao-rtraw/J25.6.0/gitVcd310cd8/global_trigger/00000000/00000500/516/RUN.516.TAODAQ.TEST.ds-0.global_trigger.20251108125748.001_J25.6.0_gitVcd310cd8.rtraw"
+    // "root://junoeos01.ihep.ac.cn//eos/juno/tao-rtraw/J25.6.0/gitVcd310cd8/global_trigger/00000000/00000500/516/RUN.516.TAODAQ.TEST.ds-0.global_trigger.20251108125748.001_J25.6.0_gitVcd310cd8.rtraw"
 };
 
 // 主执行函数
@@ -84,8 +84,8 @@ void process_file(const std::string& inputFile) {
     Tao::CdElecEvt* ElecEvt = new Tao::CdElecEvt();    
     ElecTree->SetBranchAddress("CdElecEvt", &ElecEvt);
     
-    Tao::CdTrigEvt* TrigEvt = new Tao::CdTrigEvt();
-    TrigTree->SetBranchAddress("CdTrigEvt", &TrigEvt);    
+    // Tao::CdTrigEvt* TrigEvt = new Tao::CdTrigEvt();
+    // TrigTree->SetBranchAddress("CdTrigEvt", &TrigEvt);    
 
      // 处理事件
      int Nentries = ElecTree->GetEntries();
@@ -299,7 +299,7 @@ void process_file(const std::string& inputFile) {
             nhits += tdc_calib_datas[i].entry;
         }
 
-        sumtime = std::fabs(tdc_calib_datas[0].dt-tdc_calib_datas.back().dt-2.5)
+        sumtime = std::fabs(tdc_calib_datas[0].dt-tdc_calib_datas.back().dt-2.5) // Bin Width = 2.5
             * 1e-9 * static_cast<double>(Nentries);
 
         dcr_channel = static_cast<double>(nhits) / sumtime;
@@ -309,12 +309,6 @@ void process_file(const std::string& inputFile) {
         dcr_tmp.ch_id = l;
         dcr_tmp.dcr_ch = dcr;
         dcrs.push_back(dcr_tmp);
-
-        if(l == 4793)
-        {
-            std::cout << "DCR for Ch4793:" << dcr << std::endl;
-        }
-
 
         // 清空容器 开始读取下一个Channel
         tdc_entries.clear();
