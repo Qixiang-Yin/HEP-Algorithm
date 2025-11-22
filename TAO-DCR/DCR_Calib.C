@@ -38,7 +38,7 @@ const std::vector<std::string> inputFiles = {
 void process_file(const std::string& inputFile) {
     std::cout << "处理文件: " << inputFile << std::endl;
     // 批量处理所有文件
-    size_t pos = inputFile.find("_J25.6.0_gitVcd310cd8.rtraw");
+    size_t pos = inputFile.find("_J25.6.0_gitVbd15bb5e.rtraw");
     if (pos == std::string::npos) {
         std::cerr << "错误：无法从文件路径提取索引" << std::endl;
         return;
@@ -46,7 +46,7 @@ void process_file(const std::string& inputFile) {
 
     std::string fileIndex = inputFile.substr(pos - 3);
     fileIndex = fileIndex.substr(0, fileIndex.find("_J25"));
-    std::string outputFile = "./output_dcr/dcr_527_" + fileIndex + ".root";
+    std::string outputFile = "./output_dcr/dcr_649_" + fileIndex + ".root";
 
     std::cout << "输出文件: " << outputFile << std::endl;
 
@@ -105,21 +105,30 @@ void process_file(const std::string& inputFile) {
         int ch_id; // 通道号
         double dcr_ch; // DCR
     };
+    struct Fit_Struct
+    {
+        double fit_value; // 拟合的直线高度
+        double chi2_ndf; // Chi^2/NDF
+        double leftedge; // 拟合区间的左边界
+        bool fit_tag; // 标记拟合好坏
+    };
     std::vector<int> tdc_entries;
     std::vector<double> tdc_dts;
     std::vector<double> tdc_ratios;
-    std::vector<TDC_Struct> raw_tdc_calib_datas;
-    std::vector<TDC_Struct> tdc_calib_datas;
-    std::vector<DCR_Struct> dcrs;
-    double nhits = 0;
-    double sumtime = 0;
-    double dcr_channel;
-    double dcr;
-    TH1F* h_DCR = new TH1F("DCR", "DCR for Channels", 50000, 0, 50000);
+    std::vector<TDC_Struct> raw_tdc_calib_datas; // 原始TDC数据
+    std::vector<TDC_Struct> tdc_calib_datas; // 用于刻度的TDC数据
+    std::vector<DCR_Struct> dcrs; // 通道-DCR 组合
+    std::vector<Fit_Struct> fit_datas; // 常数函数拟合的数据
+    double nhits = 0; // 着火数
+    double sumtime = 0; // 时间窗
+    double dcr_channel; // DCR (单通道的DCR Hz)
+    double dcr; // DCR (单通道单位面积的DCR Hz/mm^2)
+
+    TH1F* h_DCR = new TH1F("DCR", "DCR for Channels", 100000, 0, 100000);
     h_DCR->GetXaxis()->SetTitle("Channel ID");
     h_DCR->GetYaxis()->SetTitle("DCR (Hz/mm2)");
 
-    const int number_channel = 50000;
+    const int number_channel = 100000;
     TH1F* h_TDC_Channels[number_channel];
     for (int i = 0; i < number_channel; i++) 
     {
@@ -178,7 +187,7 @@ void process_file(const std::string& inputFile) {
             }
         }
 
-        if(tdc_entries.size() == 0) // 如果某个Channel没有计数 则直接开始读取下一个Channel
+        if(tdc_entries.size() == 0) // 如果某个Channel没有计数 则该Channel的DCR置零 直接开始读取下一个Channel
         {
             DCR_Struct dcr_tmp;
             dcr_tmp.ch_id = l;
@@ -213,76 +222,119 @@ void process_file(const std::string& inputFile) {
             raw_tdc_calib_datas.push_back(tdc_tmp);
         }
 
-        for(int i=0; i<raw_tdc_calib_datas.size(); i++)
-        {
-            // 去除TDC分布图中靠前突变的部分
-            /*
-            double diff = 1.0 - raw_tdc_calib_datas[i].ratio;
-            if(i > 0 && std::fabs(diff) > 0.3 
-                && raw_tdc_calib_datas[i].dt <= 0.0)
-            {
-                for(int j=0; j<=i; j++)
-                {
-                    raw_tdc_calib_datas[j].tag = false;
-                }
-                
-                break;
-            }
-            */
-
-            // 去除TDC时间大于等于零的部分
-            if(raw_tdc_calib_datas[i].dt >= 0.0)
-            {
-                raw_tdc_calib_datas[i].tag = false;
-            }
-        }
-
-        // 去除TDC分布图中Entries与前一个Bin相差过大的Bin+该Bin之后的所有Bin
-        /*
-        for(int i=0; i<raw_tdc_calib_datas.size(); i++)
-        {
-            double diff_with_last = 1.0 - raw_tdc_calib_datas[i].ratio;
-            if(i > 0 && std::fabs(diff_with_last) > 0.3 
-                && raw_tdc_calib_datas[i].tag != false)
-            {
-                for(int j=i; j<raw_tdc_calib_datas.size(); j++)
-                {
-                    raw_tdc_calib_datas[j].tag = false;
-                }
-                
-                break;
-            }
-        }
-        */
-
-        // 去除TDC分布图中Entries与第一个Bin相差过大的Bin+该Bin之后的所有Bin
-        /*
-        double entries_1st;
-        for(int j=0; j<raw_tdc_calib_datas.size(); j++)
-        {
-            if (raw_tdc_calib_datas[j].tag != false)
-            {
-                entries_1st = raw_tdc_calib_datas[j].entry; // 获取第一个恰当的TDCBin的Entries
-
-                break;
-            }
-        }
-        
+        // 寻找Enetries的最大值
+        TDC_Struct tdc_max;
         for (int i=0; i<raw_tdc_calib_datas.size(); i++)
         {
-            double diff_with_1st = 1.0 - static_cast<double>(raw_tdc_calib_datas[i].entry) / entries_1st; // 1-与第一个Bin的比值
-            if(i > 0 && std::fabs(diff_with_1st) > 0.4 && raw_tdc_calib_datas[i].dt <= 0.0 
-                && raw_tdc_calib_datas[i].tag == true)
+            if (i == 0)
             {
-                for(int j=i; j<raw_tdc_calib_datas.size(); j++)
-                {
-                    raw_tdc_calib_datas[j].tag = false;
-                }
+                tdc_max = raw_tdc_calib_datas[0];
+            }
 
-                break;
+            else
+            {
+                if(raw_tdc_calib_datas[i].entry >= tdc_max.entry)
+                {
+                    tdc_max = raw_tdc_calib_datas[i];
+                }
             }
         }
-        */
+
+        if (tdc_max.dt > 0) // TDC峰值<=0
+        {
+            for(int i=0; i<raw_tdc_calib_datas.size(); i++)
+            {
+                // 去除TDC时间大于等于零的部分
+                if(raw_tdc_calib_datas[i].dt >= 0.0)
+                {
+                    raw_tdc_calib_datas[i].tag = false;
+                }
+            }
+        }
+
+        else // TDC峰值<=0
+        {
+            // 常数函数拟合TDC图中>100ns的部分 寻找平坦区间
+            double startX = 0.0;
+            double stepWidth = 100.0; // 区间宽度 100ns
+            double endX = h_TDC_Channels[l]->GetXaxis()->GetXmax();
+
+            for (double x = startX; x < endX; x += stepWidth) 
+            {
+                double currentEnd = x + stepWidth;
+                if (currentEnd > endX) currentEnd = endX; // 确保不溢出边界
+
+                // 检查数据量 舍弃数据量低的区间
+                int bin1 = h_TDC_Channels[l]->GetXaxis()->FindBin(x);
+                int bin2 = h_TDC_Channels[l]->GetXaxis()->FindBin(currentEnd);
+                if (h_TDC_Channels[l]->Integral(bin1, bin2) < 5) 
+                {
+                    continue; 
+                }
+        
+                // 使用 "pol0" (常数函数 y = p0)
+                TF1 *fConst = new TF1("fConst", "pol0", x, currentEnd);
+        
+                // 执行拟合
+                h_TDC_Channels[l]->Fit(fConst, "R Q N 0");
+        
+                // 获取结果
+                double height = fConst->GetParameter(0);    // 平均高度
+                double error  = fConst->GetParError(0);     // 误差
+                double chi2   = fConst->GetChisquare();
+                double ndf    = fConst->GetNDF();
+                
+                double reducedChi2 = (ndf > 0) ? chi2 / ndf : -1.0; // 计算Chi^2/NDF 确保NDF>0
+
+                Fit_Struct fit_tmp;
+                fit_tmp.fit_value = height;
+                fit_tmp.chi2_ndf = reducedChi2;
+                fit_tmp.leftedge = x;
+                if(fit_tmp.chi2_ndf >= 2.0 || fit_tmp.chi2_ndf <= 0.5) // Chi2/NDF作为判断指标 拟合结果差表明Hits在该区间内变化较大
+                {
+                    fit_tmp.fit_tag = false;
+                }
+                else
+                {
+                    fit_tmp.fit_tag = true;
+                }
+                fit_datas.push_back(fit_tmp);
+        
+                delete fConst;
+            }
+
+            double goodfit_starttime = 10000.0; // 选取常数函数拟合效果好的区间
+            double goodfit_enttime = 10000.0;
+
+            for(int i=0; i<fit_datas.size(); i++)
+            {
+                if(fit_datas[i].fit_tag == true)
+                {
+                    if(goodfit_starttime == 10000.0)
+                    {
+                        goodfit_starttime = fit_datas[i].leftedge;
+                    }
+                }
+                
+                if(fit_datas[i].fit_tag == false)
+                {
+                    if(goodfit_starttime != 10000.0)
+                    {
+                        goodfit_enttime = fit_datas[i].leftedge;
+                        break;
+                    }
+                }
+            }
+
+            for(int i=0; i<raw_tdc_calib_datas.size(); i++)
+            {
+                if(raw_tdc_calib_datas[i].dt < goodfit_starttime || raw_tdc_calib_datas[i].dt > goodfit_enttime)
+                {
+                    raw_tdc_calib_datas[i].tag = false;
+                }
+            }
+
+        }
 
         // 保存为新结构体
         for(int i=0; i<raw_tdc_calib_datas.size(); i++)
