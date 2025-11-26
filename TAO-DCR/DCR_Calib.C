@@ -46,7 +46,7 @@ void process_file(const std::string& inputFile) {
 
     std::string fileIndex = inputFile.substr(pos - 3);
     fileIndex = fileIndex.substr(0, fileIndex.find("_T25"));
-    std::string outputFile = "../output_dcr/dcr_715_" + fileIndex + ".root";
+    std::string outputFile = "./output_dcr/dcr_715_" + fileIndex + ".root";
 
     std::cout << "输出文件: " << outputFile << std::endl;
 
@@ -330,21 +330,29 @@ void process_file(const std::string& inputFile) {
         }
 
         // 计算DCR  
-        for(int i=0; i<tdc_calib_datas.size(); i++)
+        if(!tdc_calib_datas.empty()) // Vector通常不为空 但也有例外
         {
-            nhits += tdc_calib_datas[i].entry;
+            for(int i=0; i<tdc_calib_datas.size(); i++)
+            {
+                nhits += tdc_calib_datas[i].entry;
+            }
+
+            sumtime = std::fabs(tdc_calib_datas[0].dt-tdc_calib_datas.back().dt-2.5) // Bin Width = 2.5
+                * 1e-9 * static_cast<double>(Nentries);
+
+            if(sumtime == 0.0) // 分母不能为零
+            {
+                dcr_channel = 0.0;
+            }
+            else
+            {
+                dcr_channel = static_cast<double>(nhits) / sumtime;
+            }
         }
 
-        sumtime = std::fabs(tdc_calib_datas[0].dt-tdc_calib_datas.back().dt-2.5) // Bin Width = 2.5
-            * 1e-9 * static_cast<double>(Nentries);
-
-        if(sumtime == 0.0)
-        {
-            dcr_channel = 0.0;
-        }
         else
         {
-            dcr_channel = static_cast<double>(nhits) / sumtime;
+            dcr_channel = 0.0;
         }
 
         dcr = dcr_channel / (50.7*50.7*0.5);
