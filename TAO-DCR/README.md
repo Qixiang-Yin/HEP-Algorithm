@@ -414,6 +414,8 @@ echo "全部作业已成功提交！"
 
 新增脚本`debug_script/Scan_Bad_Bins.C`，用于查看DCR分布图中未填充的Bin的位置（值为NaN），检验哪个通道没有成功刻度
 
+新增脚本`debug_script/Offline_Single_Channel_Analysis.C`，可以在本地分析不同Channel的TDC分布图，计算DCR，用于检查算法是否存在Bug
+
 在`debug_script/Single_Channel_Analysis.C`中增加了新功能：文本输出用于刻度的数据
 
 在`DCR_Calib.C`中修改了刻度策略，增加了通过常值函数拟合寻找暗计数区间的方式，详细见`Instruction.md`
