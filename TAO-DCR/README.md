@@ -406,3 +406,15 @@ echo "全部作业已成功提交！"
 
 `Single_Channel_Analysis.C`文件用于查看单一通道的电子学数据，提高效率，用于异常分析。
 
+**2025.11.26 Update**
+
+新增文件`mean_dcr/Mean_DCR.C`，可以对`output_dcr/`文件夹下的所有DCR刻度结果求平均，得到这一个RUN的平均DCR，输出为`./mean_dcr_715.root"`
+
+新增脚本`debug_script/Fit_TDC.C`，用于对TDC图做常值函数拟合，检验在刻度时是否拟合成功
+
+新增脚本`debug_script/Scan_Bad_Bins.C`，用于查看DCR分布图中未填充的Bin的位置（值为NaN），检验哪个通道没有成功刻度
+
+在`debug_script/Single_Channel_Analysis.C`中增加了新功能：文本输出用于刻度的数据
+
+在`DCR_Calib.C`中修改了刻度策略，增加了通过常值函数拟合寻找暗计数区间的方式，详细见`Instruction.md`
+

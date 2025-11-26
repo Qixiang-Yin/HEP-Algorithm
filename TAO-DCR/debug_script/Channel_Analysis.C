@@ -25,15 +25,15 @@ const std::vector<std::string> inputFiles = {
 void process_file(const std::string& inputFile) {
     std::cout << "处理文件: " << inputFile << std::endl;
     // 批量处理所有文件
-    size_t pos = inputFile.find("_J25.6.0_gitVcd310cd8.rtraw");
+    size_t pos = inputFile.find("_T25.6.1.rtraw");
     if (pos == std::string::npos) {
         std::cerr << "错误：无法从文件路径提取索引" << std::endl;
         return;
     }
 
     std::string fileIndex = inputFile.substr(pos - 3);
-    fileIndex = fileIndex.substr(0, fileIndex.find("_J25"));
-    std::string outputFile = "./output_elec/elec_channel_527_" + fileIndex + ".root";
+    fileIndex = fileIndex.substr(0, fileIndex.find("_T25"));
+    std::string outputFile = "./output_elec/elec_channel_715_" + fileIndex + ".root";
     
     // 打开输入文件
     TFile *file2 = TFile::Open(inputFile.c_str());
@@ -68,8 +68,8 @@ void process_file(const std::string& inputFile) {
     // 创建直方图
     TH1F *h_ADCs = new TH1F("ADCs", "ADCs Distribution", 20000, 0, 2e7); // 总ADC
     TH1F *h_TDCs = new TH1F("TDCs", "TDCs Distribution", 800, -500, 1500); // 总TDC
-    TH1F *h_channelid = new TH1F("channelid", "Channel ID Distribution", 8048, 0, 8048); // 每个事例中着火Channel的编号
-    TH1F *h_channels = new TH1F("channels", "Channel Hits per Event", 8048, 0, 8048); // 每个事例中着火Channel的着火次数
+    TH1F *h_channelid = new TH1F("channelid", "Channel ID Distribution", 100000, 0, 100000); // 每个事例中着火Channel的编号
+    TH1F *h_channels = new TH1F("channels", "Channel Hits per Event", 100000, 0, 100000); // 每个事例中着火Channel的着火次数
     
     // 设置轴标签
     h_ADCs->GetXaxis()->SetTitle("ADC");
@@ -77,7 +77,7 @@ void process_file(const std::string& inputFile) {
     h_channels->GetXaxis()->SetTitle("Channel Number");
     h_TDCs->GetXaxis()->SetTitle("TDC [ns]");
 
-    const int number_channel = 50000;
+    const int number_channel = 100000;
     TH1F* h_TDC_Channels[number_channel];
     for (int i = 0; i < number_channel; i++) 
     {

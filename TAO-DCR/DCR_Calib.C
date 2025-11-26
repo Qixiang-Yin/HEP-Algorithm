@@ -38,15 +38,15 @@ const std::vector<std::string> inputFiles = {
 void process_file(const std::string& inputFile) {
     std::cout << "处理文件: " << inputFile << std::endl;
     // 批量处理所有文件
-    size_t pos = inputFile.find("_J25.6.0_gitVbd15bb5e.rtraw");
+    size_t pos = inputFile.find("_T25.6.1.rtraw");
     if (pos == std::string::npos) {
         std::cerr << "错误：无法从文件路径提取索引" << std::endl;
         return;
     }
 
     std::string fileIndex = inputFile.substr(pos - 3);
-    fileIndex = fileIndex.substr(0, fileIndex.find("_J25"));
-    std::string outputFile = "./output_dcr/dcr_649_" + fileIndex + ".root";
+    fileIndex = fileIndex.substr(0, fileIndex.find("_T25"));
+    std::string outputFile = "../output_dcr/dcr_715_" + fileIndex + ".root";
 
     std::cout << "输出文件: " << outputFile << std::endl;
 
@@ -97,7 +97,6 @@ void process_file(const std::string& inputFile) {
     {
         int entry; // Hit数量
         double dt; // TDC分布图时间
-        double ratio; // TDC分布图相邻Bin的比值
         bool tag; // 标记是否去除
     };
     struct DCR_Struct
@@ -114,7 +113,6 @@ void process_file(const std::string& inputFile) {
     };
     std::vector<int> tdc_entries;
     std::vector<double> tdc_dts;
-    std::vector<double> tdc_ratios;
     std::vector<TDC_Struct> raw_tdc_calib_datas; // 原始TDC数据
     std::vector<TDC_Struct> tdc_calib_datas; // 用于刻度的TDC数据
     std::vector<DCR_Struct> dcrs; // 通道-DCR 组合
@@ -168,7 +166,6 @@ void process_file(const std::string& inputFile) {
         // 初始化
         tdc_entries.clear();
         tdc_dts.clear();
-        tdc_ratios.clear();
         raw_tdc_calib_datas.clear();
         tdc_calib_datas.clear();
         nhits = 0;
@@ -196,18 +193,6 @@ void process_file(const std::string& inputFile) {
             continue;
         }
         
-        // 计算相邻bin的比值
-        for (int i=0; i<tdc_entries.size(); i++)
-        {
-        if (i == 0)
-            {
-                tdc_ratios.push_back(0);
-            }
-            else
-            {
-                tdc_ratios.push_back(static_cast<double>(tdc_entries[i])/tdc_entries[i-1]); // ratio=bin/(bin-1)
-            }
-        }
 
         //将击中、时间、比值存入结构体
         for(int i=0; i<tdc_entries.size(); i++)
@@ -216,7 +201,6 @@ void process_file(const std::string& inputFile) {
 
             tdc_tmp.entry = tdc_entries[i];
             tdc_tmp.dt = tdc_dts[i];
-            tdc_tmp.ratio = tdc_ratios[i];
             tdc_tmp.tag = true;
 
             raw_tdc_calib_datas.push_back(tdc_tmp);
@@ -354,7 +338,15 @@ void process_file(const std::string& inputFile) {
         sumtime = std::fabs(tdc_calib_datas[0].dt-tdc_calib_datas.back().dt-2.5) // Bin Width = 2.5
             * 1e-9 * static_cast<double>(Nentries);
 
-        dcr_channel = static_cast<double>(nhits) / sumtime;
+        if(sumtime == 0.0)
+        {
+            dcr_channel = 0.0;
+        }
+        else
+        {
+            dcr_channel = static_cast<double>(nhits) / sumtime;
+        }
+
         dcr = dcr_channel / (50.7*50.7*0.5);
 
         DCR_Struct dcr_tmp;
@@ -365,7 +357,6 @@ void process_file(const std::string& inputFile) {
         // 清空容器 开始读取下一个Channel
         tdc_entries.clear();
         tdc_dts.clear();
-        tdc_ratios.clear();
         raw_tdc_calib_datas.clear();
         tdc_calib_datas.clear();
         nhits = 0;
@@ -382,12 +373,12 @@ void process_file(const std::string& inputFile) {
     // 输出
     /*
     std::ofstream tdc_outfile(outputTxtFile);
-    tdc_outfile << "dt(ns)\ttdc_entries\tratio" << std::endl;
+    tdc_outfile << "dt(ns)\ttdc_entries" << std::endl;
 
     for (int i=0; i<tdc_calib_datas.size(); i++)
     {    
         tdc_outfile << tdc_calib_datas[i].dt << '\t' << tdc_calib_datas[i].entry 
-            << '\t' << std::fabs(1-tdc_calib_datas[i].ratio) << std::endl;
+            << std::endl;
     }
 
     tdc_outfile.close();

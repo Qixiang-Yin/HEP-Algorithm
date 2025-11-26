@@ -16,7 +16,7 @@
 #include "TStyle.h"
 #include "TLatex.h"
 const std::vector<std::string> inputFiles = {
-    "root://junoeos01.ihep.ac.cn//eos/juno/tao-rtraw/J25.6.0/gitVbd15bb5e/CD/00000000/00000600/649/RUN.649.TAODAQ.TEST.ds-0.CD.20251120101220.001_J25.6.0_gitVbd15bb5e.rtraw"
+    "root://junoeos01.ihep.ac.cn//eos/juno/tao-rtraw/T25.6.1/CD/00000000/00000700/715//RUN.715.TAODAQ.TEST.ds-0.CD.20251123235846.049_T25.6.1.rtraw"
     
 };
 
@@ -25,19 +25,19 @@ const std::vector<std::string> inputFiles = {
 void process_file(const std::string& inputFile) {
     std::cout << "处理文件: " << inputFile << std::endl;
     // 批量处理所有文件
-    size_t pos = inputFile.find("_J25.6.0_gitVbd15bb5e.rtraw");
+    size_t pos = inputFile.find("_T25.6.1.rtraw");
     if (pos == std::string::npos) {
         std::cerr << "错误：无法从文件路径提取索引" << std::endl;
         return;
     }
 
     // 单通道图
-    const int channel_ana_id = 4465;
+    const int channel_ana_id = 2033;
     std::string id_string = std::to_string(channel_ana_id);
     std::string fileIndex = inputFile.substr(pos - 3);
-    fileIndex = fileIndex.substr(0, fileIndex.find("_J25"));
-    std::string outputFile = "./output_elec/elec_channel_"+ id_string
-    +"_649_" + fileIndex + ".root";
+    fileIndex = fileIndex.substr(0, fileIndex.find("_T25"));
+    std::string outputFile = "../output_elec/elec_channel_"+ id_string
+    +"_715_" + fileIndex + ".root";
     
     // 打开输入文件
     TFile *file2 = TFile::Open(inputFile.c_str());
@@ -143,7 +143,6 @@ void process_file(const std::string& inputFile) {
     {
         int entry; // Hit数量
         double dt; // TDC分布图时间
-        double ratio; // TDC分布图相邻Bin的比值
         bool tag; // 标记是否去除
     };
     struct Fit_Struct
@@ -155,7 +154,6 @@ void process_file(const std::string& inputFile) {
     };
     std::vector<int> tdc_entries;
     std::vector<double> tdc_dts;
-    std::vector<double> tdc_ratios;
     std::vector<TDC_Struct> raw_tdc_calib_datas;
     std::vector<TDC_Struct> tdc_calib_datas;
     std::vector<Fit_Struct> fit_datas; // 常数函数拟合的数据
@@ -172,19 +170,6 @@ void process_file(const std::string& inputFile) {
             tdc_dts.push_back(tdc_dt);
         }
     }
-    
-    // 计算相邻bin的比值
-    for (int i=0; i<tdc_entries.size(); i++)
-    {
-    if (i == 0)
-        {
-            tdc_ratios.push_back(0);
-        }
-        else
-        {
-            tdc_ratios.push_back(static_cast<double>(tdc_entries[i])/tdc_entries[i-1]); // ratio=bin/(bin-1)
-        }
-    }
 
     //将击中、时间、比值存入结构体
     for(int i=0; i<tdc_entries.size(); i++)
@@ -193,7 +178,6 @@ void process_file(const std::string& inputFile) {
 
         tdc_tmp.entry = tdc_entries[i];
         tdc_tmp.dt = tdc_dts[i];
-        tdc_tmp.ratio = tdc_ratios[i];
         tdc_tmp.tag = true;
 
         raw_tdc_calib_datas.push_back(tdc_tmp);
@@ -322,17 +306,18 @@ void process_file(const std::string& inputFile) {
         }
     }
 
-    std::string outputTxtFile = "./output_file/tdc_649_"+ fileIndex + "_" + id_string +".txt";
+    std::string outputTxtFile = "../output_file/tdc_715_"+ fileIndex + "_" + id_string +".txt";
     std::ofstream tdc_outfile(outputTxtFile);
-    tdc_outfile << "dt(ns)\ttdc_entries\tratio" << std::endl;
+    tdc_outfile << "dt(ns)\ttdc_entries" << std::endl;
 
     for (int i=0; i<tdc_calib_datas.size(); i++)
     {    
         tdc_outfile << tdc_calib_datas[i].dt << '\t' << tdc_calib_datas[i].entry 
-            << '\t' << std::fabs(1-tdc_calib_datas[i].ratio) << std::endl;
+            << std::endl;
     }
  
 
+    // 输出用于计算DCR的数据
     float dcr = 0.0;
     float nhits = 0.0;
     float sumtime = 0.0;
@@ -342,7 +327,14 @@ void process_file(const std::string& inputFile) {
     }
     
     sumtime = std::fabs(tdc_calib_datas[0].dt-tdc_calib_datas.back().dt-2.5) * 1e-9 * static_cast<double>(Nentries);
-    dcr = nhits / (sumtime * 50.7 * 50.7 * 0.5);
+    if(sumtime == 0.0)
+    {
+        dcr = 0.0;
+    }
+    else
+    {
+        dcr = nhits / (sumtime * 50.7 * 50.7 * 0.5);
+    }
 
     tdc_outfile << "tdc_calib_datas[0].dt: " << tdc_calib_datas[0].dt << std::endl;
     tdc_outfile << "tdc_calib_datas.back().dt: " << tdc_calib_datas.back().dt << std::endl;
